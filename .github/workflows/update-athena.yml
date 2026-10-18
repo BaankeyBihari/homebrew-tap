@@ -42,12 +42,16 @@ jobs:
           done
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      # The slsa-verifier installer action only runs on Linux; Go is preinstalled on macOS runners.
+      # The slsa-verifier installer action only runs on Linux, so fetch the release binary and pin its checksum.
       - name: Install slsa-verifier
         if: steps.release.outputs.tag
         run: |
-          go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@v2.7.1
-          go env GOPATH | sed 's|$|/bin|' >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/bin"
+          gh release download v2.7.1 --repo slsa-framework/slsa-verifier \
+            --pattern slsa-verifier-darwin-arm64 --output "$RUNNER_TEMP/bin/slsa-verifier"
+          echo "39abfcf5f1d690c3e889ce3d2d6a8b87711424d83368511868d414e8f8bcb05c  $RUNNER_TEMP/bin/slsa-verifier" | shasum -a 256 -c
+          chmod +x "$RUNNER_TEMP/bin/slsa-verifier"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Verify provenance and update the formula
         if: steps.release.outputs.tag
