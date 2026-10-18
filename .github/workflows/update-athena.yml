@@ -1,5 +1,6 @@
 # Points Formula/athena.rb at the latest athena release once its SLSA provenance verifies
-# and the formula installs, tests, and audits cleanly. Run it by hand to update right away:
+# and the formula installs, tests, and audits cleanly. athena's release workflow starts it
+# once a release's binaries and provenance are attached. Run it by hand to update right away:
 #   gh workflow run update-athena.yml -R BaankeyBihari/homebrew-tap
 
 name: Update athena
@@ -7,6 +8,8 @@ on:
   schedule:
     - cron: "17 6 * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [athena-release]
 
 permissions:
   contents: write # To push the formula update.
