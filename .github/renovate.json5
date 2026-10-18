@@ -1,0 +1,11 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "schedule:weekly",
+    ":semanticCommits",
+  ],
+  // update-athena.yml bumps the formula only after the release's SLSA provenance verifies.
+  homebrew: { enabled: false },
+}
