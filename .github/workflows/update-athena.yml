@@ -42,8 +42,12 @@ jobs:
           done
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - if: steps.release.outputs.tag
-        uses: slsa-framework/slsa-verifier/actions/installer@v2.7.1
+      # The slsa-verifier installer action only runs on Linux; Go is preinstalled on macOS runners.
+      - name: Install slsa-verifier
+        if: steps.release.outputs.tag
+        run: |
+          go install github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier@v2.7.1
+          go env GOPATH | sed 's|$|/bin|' >> "$GITHUB_PATH"
 
       - name: Verify provenance and update the formula
         if: steps.release.outputs.tag
