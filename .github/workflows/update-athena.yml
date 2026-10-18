@@ -1,0 +1,81 @@
+# Points Formula/athena.rb at the latest athena release once its SLSA provenance verifies
+# and the formula installs, tests, and audits cleanly. Run it by hand to update right away:
+#   gh workflow run update-athena.yml -R BaankeyBihari/homebrew-tap
+
+name: Update athena
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # To push the formula update.
+
+concurrency: update-athena
+
+jobs:
+  update:
+    runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: BaankeyBihari/athena
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Find a newer release
+        id: release
+        run: |
+          tag=$(gh release view --repo "$REPO" --json tagName --jq .tagName)
+          current=$(sed -n 's|.*/releases/download/\([^/]*\)/.*|\1|p' Formula/athena.rb | head -n1)
+          if [ "$tag" = "$current" ]; then
+            echo "Formula is already at $tag"
+            exit 0
+          fi
+          # The release workflow attaches these after the release is created; retry tomorrow if missing.
+          assets=$(gh release view "$tag" --repo "$REPO" --json assets --jq '.assets[].name')
+          for a in athena-aarch64-apple-darwin.tar.gz athena-x86_64-unknown-linux-gnu.tar.gz multiple.intoto.jsonl; do
+            if ! grep -qx "$a" <<<"$assets"; then
+              echo "$tag is missing $a; skipping"
+              exit 0
+            fi
+          done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - if: steps.release.outputs.tag
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.7.1
+
+      - name: Verify provenance and update the formula
+        if: steps.release.outputs.tag
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          dl=$(mktemp -d)
+          gh release download "$TAG" --repo "$REPO" --dir "$dl"
+          sed -i '' "s|/releases/download/[^/]*/|/releases/download/$TAG/|" Formula/athena.rb
+          for target in aarch64-apple-darwin x86_64-unknown-linux-gnu; do
+            tarball="$dl/athena-$target.tar.gz"
+            slsa-verifier verify-artifact "$tarball" \
+              --provenance-path "$dl/multiple.intoto.jsonl" \
+              --source-uri "github.com/$REPO" \
+              --source-tag "$TAG"
+            sha=$(shasum -a 256 "$tarball" | cut -d' ' -f1)
+            # The sha256 line follows its target's url line.
+            sed -i '' "/athena-$target.tar.gz/{n;s/sha256 \"[0-9a-f]*\"/sha256 \"$sha\"/;}" Formula/athena.rb
+          done
+          git diff
+
+      - name: Commit, then install, test, and audit from the committed tap
+        if: steps.release.outputs.tag
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -am "chore(athena): update to ${TAG#v}"
+          brew tap BaankeyBihari/tap "$GITHUB_WORKSPACE"
+          brew install BaankeyBihari/tap/athena
+          brew test BaankeyBihari/tap/athena
+          brew audit --strict BaankeyBihari/tap/athena
+          git push
