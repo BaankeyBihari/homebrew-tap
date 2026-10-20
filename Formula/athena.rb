@@ -8,15 +8,15 @@ class Athena < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/BaankeyBihari/athena/releases/download/v0.3.1/athena-aarch64-apple-darwin.tar.gz"
-      sha256 "9edc29dad1b494f96b541cfa7a1b38a2a7af53877a1963fd182cd3304c9db37d"
+      url "https://github.com/BaankeyBihari/athena/releases/download/v0.4.0/athena-aarch64-apple-darwin.tar.gz"
+      sha256 "ac5d74665bd09c70be16044706226d3de3e5936bc1ae19a76dfafa48b06c49a0"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/BaankeyBihari/athena/releases/download/v0.3.1/athena-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "a9755f0e3d6abae7ca7c7edd62d1ecb3e91a29c10f96d46149a9772d858f57ee"
+      url "https://github.com/BaankeyBihari/athena/releases/download/v0.4.0/athena-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "c0ac4c6d627f2443e854d6633ba6cb42c89b0fc32087ae4ed3a03c7de88d86be"
     end
   end
 
